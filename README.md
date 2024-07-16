@@ -7,4 +7,10 @@
 2:
 Block
 Header
+Hash
+
+3:
+Transaction + Signature
+
+
 
