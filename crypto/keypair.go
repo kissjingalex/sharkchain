@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"math/big"
 	"sharkchain/types"
 )
@@ -26,15 +27,19 @@ func (k PrivateKey) Sign(data []byte) (*Signature, error) {
 	}, nil
 }
 
-func GeneratePrivateKey() (*PrivateKey, error) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+func GeneratePrivateKey() PrivateKey {
+	return NewPrivateKeyFromReader(rand.Reader)
+}
+
+func NewPrivateKeyFromReader(r io.Reader) PrivateKey {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), r)
 	if err != nil {
 		panic(err)
 	}
 
-	return &PrivateKey{
+	return PrivateKey{
 		key: key,
-	}, nil
+	}
 }
 
 func (k PrivateKey) PublicKey() PublicKey {

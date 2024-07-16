@@ -12,7 +12,7 @@ func TestConnect(t *testing.T) {
 	tra.Connect(trb)
 	trb.Connect(tra)
 
-	assert.Equal(t, tra.peers[trb.addr], trb)
+	assert.Equal(t, tra.peers[trb.Addr()], trb)
 	assert.Equal(t, trb.peers[tra.addr], tra)
 }
 

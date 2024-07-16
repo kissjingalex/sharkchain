@@ -7,10 +7,7 @@ import (
 )
 
 func TestGeneratePrivateKey(t *testing.T) {
-	privKey, err := GeneratePrivateKey()
-	if err != nil {
-		t.Error(err)
-	}
+	privKey := GeneratePrivateKey()
 
 	pubKey := privKey.PublicKey()
 	address := pubKey.Address()
@@ -19,10 +16,7 @@ func TestGeneratePrivateKey(t *testing.T) {
 }
 
 func TestPrivateKey_Sign(t *testing.T) {
-	privKey, err := GeneratePrivateKey()
-	if err != nil {
-		t.Error(err)
-	}
+	privKey := GeneratePrivateKey()
 
 	pubKey := privKey.PublicKey()
 

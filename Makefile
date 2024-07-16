@@ -5,4 +5,4 @@ run: build
 	./bin/shark
 
 test:
-	go test ./..
+	go test ./...

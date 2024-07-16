@@ -1,65 +1,53 @@
 package core
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/stretchr/testify/assert"
+	"sharkchain/crypto"
 	"sharkchain/types"
 	"testing"
 	"time"
 )
 
-func TestHeader_DecodeBinary(t *testing.T) {
-	h := &Header{
-		Version:   1,
-		PrevBlock: types.RandomHash(),
-		Timestamp: time.Now().UnixNano(),
-		Height:    10,
-		Nonce:     98319381,
+func randomBlock(height uint32) *Block {
+	//privKey := crypto.GeneratePrivateKey()
+	//tx := randomTxWithSignature(t)
+
+	header := &Header{
+		Version:       1,
+		PrevBlockHash: types.RandomHash(),
+		Height:        height,
+		Timestamp:     time.Now().UnixNano(),
 	}
 
-	buf := &bytes.Buffer{}
-	assert.Nil(t, h.EncodeBinary(buf))
-	fmt.Printf("buf : %+v\n", buf.Bytes())
+	tx := Transaction{
+		Data: []byte("foo"),
+	}
 
-	hDecode := &Header{}
-	assert.Nil(t, hDecode.DecodeBinary(buf))
-	fmt.Printf("Header : %+v\n", hDecode)
-	assert.Equal(t, h, hDecode)
+	b, err := NewBlock(header, []*Transaction{&tx})
+	if err != nil {
+		return nil
+	}
+
+	return b
 }
 
-func TestBlock_DecodeBinary(t *testing.T) {
-	b := &Block{
-		Header: Header{
-			Version:   1,
-			PrevBlock: types.RandomHash(),
-			Timestamp: time.Now().UnixNano(),
-			Height:    10,
-			Nonce:     98319381,
-		},
-		Transactions: nil,
-	}
+func TestSignBlock(t *testing.T) {
+	b := randomBlock(0)
+	privKey := crypto.GeneratePrivateKey()
 
-	buf := &bytes.Buffer{}
-	assert.Nil(t, b.EncodeBinary(buf))
-
-	bDecode := &Block{}
-	assert.Nil(t, bDecode.DecodeBinary(buf))
-	assert.Equal(t, b, bDecode)
+	assert.Nil(t, b.Sign(privKey))
+	assert.NotNil(t, b.Signature)
 }
 
-func TestBlock_Hash(t *testing.T) {
-	b := &Block{
-		Header: Header{
-			Version:   1,
-			PrevBlock: types.RandomHash(),
-			Timestamp: time.Now().UnixNano(),
-			Height:    10,
-			Nonce:     98319381,
-		},
-		Transactions: nil,
-	}
+func TestVerifyBlock(t *testing.T) {
+	privKey := crypto.GeneratePrivateKey()
+	b := randomBlock(0)
 
-	hash := b.Hash()
-	assert.False(t, hash.IsZero())
+	assert.Nil(t, b.Sign(privKey))
+	assert.Nil(t, b.Verify())
+
+	otherPrivKey := crypto.GeneratePrivateKey()
+	b.Validator = otherPrivKey.PublicKey()
+
+	assert.NotNil(t, b.Verify())
 }

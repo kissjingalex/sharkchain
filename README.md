@@ -12,5 +12,7 @@ Hash
 3:
 Transaction + Signature
 
-
+4: 
+Transaction sign() verify()
+Block sign() verify()
 
