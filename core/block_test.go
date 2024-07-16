@@ -9,7 +9,7 @@ import (
 )
 
 func randomBlock(height uint32) *Block {
-	//privKey := crypto.GeneratePrivateKey()
+	privKey := crypto.GeneratePrivateKey()
 	//tx := randomTxWithSignature(t)
 
 	header := &Header{
@@ -25,6 +25,10 @@ func randomBlock(height uint32) *Block {
 
 	b, err := NewBlock(header, []*Transaction{&tx})
 	if err != nil {
+		return nil
+	}
+
+	if err1 := b.Sign(privKey); err1 != nil {
 		return nil
 	}
 
