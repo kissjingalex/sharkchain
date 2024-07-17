@@ -69,7 +69,9 @@ func (bc *Blockchain) AddBlock(b *Block) error {
 }
 
 func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
+	bc.lock.Lock()
 	bc.headers = append(bc.headers, b.Header)
+	bc.lock.Unlock()
 
 	bc.logger.Log(
 		"msg", "new block",
@@ -90,6 +92,9 @@ func (bc *Blockchain) Height() uint32 {
 	if len(bc.headers) == 0 {
 		return 0
 	}
+
+	bc.lock.RLock()
+	defer bc.lock.RUnlock()
 
 	return uint32(len(bc.headers) - 1) // maybe -1
 }
