@@ -57,6 +57,13 @@ func (b *Block) Verify() error {
 		return fmt.Errorf("invalid block signature")
 	}
 
+	// also verify all tx
+	for _, tx := range b.Transactions {
+		if err := tx.Verify(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -81,4 +88,8 @@ func (b *Block) Hash(hasher Hasher[*Header]) types.Hash {
 	}
 
 	return b.hash
+}
+
+func (b *Block) AddTransaction(tx *Transaction) {
+	b.Transactions = append(b.Transactions, tx)
 }

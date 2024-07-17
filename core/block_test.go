@@ -8,22 +8,22 @@ import (
 	"time"
 )
 
-func randomBlock(height uint32) *Block {
+func randomZeroBlock(t *testing.T) *Block {
+	return randomBlock(t, 0, types.Hash{})
+}
+
+func randomBlock(t *testing.T, height uint32, prevBlockHash types.Hash) *Block {
 	privKey := crypto.GeneratePrivateKey()
-	//tx := randomTxWithSignature(t)
+	tx := randomTxWithSignature(t)
 
 	header := &Header{
 		Version:       1,
-		PrevBlockHash: types.RandomHash(),
+		PrevBlockHash: prevBlockHash,
 		Height:        height,
 		Timestamp:     time.Now().UnixNano(),
 	}
 
-	tx := Transaction{
-		Data: []byte("foo"),
-	}
-
-	b, err := NewBlock(header, []*Transaction{&tx})
+	b, err := NewBlock(header, []*Transaction{tx})
 	if err != nil {
 		return nil
 	}
@@ -36,7 +36,7 @@ func randomBlock(height uint32) *Block {
 }
 
 func TestSignBlock(t *testing.T) {
-	b := randomBlock(0)
+	b := randomZeroBlock(t)
 	privKey := crypto.GeneratePrivateKey()
 
 	assert.Nil(t, b.Sign(privKey))
@@ -45,7 +45,7 @@ func TestSignBlock(t *testing.T) {
 
 func TestVerifyBlock(t *testing.T) {
 	privKey := crypto.GeneratePrivateKey()
-	b := randomBlock(0)
+	b := randomZeroBlock(t)
 
 	assert.Nil(t, b.Sign(privKey))
 	assert.Nil(t, b.Verify())

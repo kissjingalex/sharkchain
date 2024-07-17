@@ -74,7 +74,7 @@ func (sig Signature) String() string {
 
 func (sig Signature) Verify(pubKey PublicKey, data []byte) bool {
 	//x, y := elliptic.UnmarshalCompressed(elliptic.P256(), pubKey.key)
-	//key := &ecdsa.PublicKey{
+	//key := &ecdsa.From{
 	//	Curve: elliptic.P256(),
 	//	X:     x,
 	//	Y:     y,
