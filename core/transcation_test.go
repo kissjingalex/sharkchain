@@ -1,8 +1,10 @@
 package core
 
 import (
+	"bytes"
 	"github.com/stretchr/testify/assert"
 	"sharkchain/crypto"
+	"sharkchain/types"
 	"testing"
 )
 
@@ -39,4 +41,15 @@ func TestVerifyTransaction(t *testing.T) {
 	tx.From = otherPrivKey.PublicKey()
 
 	assert.NotNil(t, tx.Verify())
+}
+
+func TestTxEncodeDecode(t *testing.T) {
+	tx := randomTxWithSignature(t)
+	buf := &bytes.Buffer{}
+	assert.Nil(t, tx.Encode(NewGobTxEncoder(buf)))
+	tx.hash = types.Hash{}
+
+	txDecoded := new(Transaction)
+	assert.Nil(t, txDecoded.Decode(NewGobTxDecoder(buf)))
+	assert.Equal(t, tx, txDecoded)
 }
