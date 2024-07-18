@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/sirupsen/logrus"
+	"log"
 	"math/rand"
 	"net"
 	"sharkchain/core"
@@ -25,6 +26,8 @@ var RemoteAddr = &net.TCPAddr{
 }
 
 func main() {
+	validatorPrivKey := crypto.GeneratePrivateKey()
+
 	trLocal := network.NewLocalTransport(LocalAddr)
 	trRemote := network.NewLocalTransport(RemoteAddr)
 
@@ -43,10 +46,16 @@ func main() {
 	}()
 
 	opts := network.ServerOpts{
+		PrivateKey: &validatorPrivKey,
+		ID:         "Local",
 		Transports: []network.Transport{trLocal},
 	}
 
-	s := network.NewServer(opts)
+	s, err := network.NewServer(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	s.Start()
 }
 

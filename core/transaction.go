@@ -6,12 +6,28 @@ import (
 	"sharkchain/types"
 )
 
+type CollectionTx struct {
+	Fee      int64
+	MetaData []byte
+}
+
+type MintTx struct {
+	Fee             int64
+	NFT             types.Hash
+	Collection      types.Hash
+	MetaData        []byte
+	CollectionOwner crypto.PublicKey
+	Signature       crypto.Signature
+}
+
 type Transaction struct {
 	Data []byte
 
 	From      crypto.PublicKey
+	To        crypto.PublicKey
+	Value     uint64
 	Signature *crypto.Signature
-
+	Nonce     int64
 	// cached version of the tx data hash
 	hash types.Hash
 }

@@ -9,6 +9,8 @@ import (
 	"os"
 	"sharkchain/core"
 	"sharkchain/crypto"
+	"sharkchain/types"
+	"sync"
 	"time"
 )
 
@@ -26,14 +28,17 @@ type ServerOpts struct {
 }
 
 type Server struct {
+	mu sync.RWMutex
+
 	ServerOpts
 	memPool     *TxPool
+	chain       *core.Blockchain
 	isValidator bool // depends on weather has private key
 	rpcCh       chan RPC
 	quitCh      chan struct{}
 }
 
-func NewServer(opts ServerOpts) *Server {
+func NewServer(opts ServerOpts) (*Server, error) {
 	if opts.BlockTime == time.Duration(0) {
 		opts.BlockTime = defaultBlockTime
 	}
@@ -45,11 +50,18 @@ func NewServer(opts ServerOpts) *Server {
 		opts.Logger = log.With(opts.Logger, "addr", opts.ID)
 	}
 
+	chain, err := core.NewBlockchain(opts.Logger, genesisBlock())
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Server{
-		ServerOpts: opts,
-		memPool:    NewTxPool(0),
-		rpcCh:      make(chan RPC),
-		quitCh:     make(chan struct{}),
+		ServerOpts:  opts,
+		memPool:     NewTxPool(0),
+		chain:       chain,
+		rpcCh:       make(chan RPC),
+		quitCh:      make(chan struct{}),
+		isValidator: opts.PrivateKey != nil,
 	}
 
 	// If we dont got any processor from the server options, we going to use
@@ -58,13 +70,15 @@ func NewServer(opts ServerOpts) *Server {
 		s.RPCProcessor = s
 	}
 
-	return s
+	return s, nil
 }
 
 func (s *Server) Start() {
 	s.initTransports()
 
-	ticker := time.NewTicker(s.BlockTime)
+	if s.isValidator {
+		go s.validatorLoop()
+	}
 
 free:
 	for {
@@ -83,15 +97,27 @@ free:
 			}
 		case <-s.quitCh:
 			break free
-		case <-ticker.C:
-			if s.isValidator {
-				s.createNewBlock()
-			}
 		default:
 		}
 	}
 
-	fmt.Println("Server stopped")
+	s.Logger.Log("msg", "Server is shutting down")
+}
+
+func (s *Server) validatorLoop() {
+	ticker := time.NewTicker(s.BlockTime)
+
+	s.Logger.Log("msg", "Starting validator loop", "blockTime", s.BlockTime)
+
+	for {
+		fmt.Println("creating new block")
+
+		if err := s.createNewBlock(); err != nil {
+			s.Logger.Log("create block error", err)
+		}
+
+		<-ticker.C
+	}
 }
 
 func (s *Server) ProcessMessage(msg *DecodedMessage) error {
@@ -129,6 +155,7 @@ func (s *Server) processTransaction(tx *core.Transaction) error {
 	}
 
 	// TODO need to broadcast
+	go s.broadcastTx(tx)
 
 	s.memPool.Add(tx)
 	return nil
@@ -170,6 +197,30 @@ func (s *Server) broadcastTx(tx *core.Transaction) error {
 
 func (s *Server) createNewBlock() error {
 	fmt.Println("creating a new block")
+
+	currentHeader, err := s.chain.GetHeader(s.chain.Height())
+	if err != nil {
+		return err
+	}
+
+	// For now we are going to use all transactions that are in the pending pool
+	// Later on when we know the internal structure of our transaction
+	// we will implement some kind of complexity function to determine how
+	// many transactions can be included in a block.
+	txx := s.memPool.Pending()
+
+	block, err := core.NewBlockFromPrevHeader(currentHeader, txx)
+	if err != nil {
+		return err
+	}
+	if err := block.Sign(*s.PrivateKey); err != nil {
+		s.Logger.Log("Fail to sign new block", err)
+		return err
+	}
+	if err := s.chain.AddBlock(block); err != nil {
+		s.Logger.Log("Fail to add new block", err)
+		return err
+	}
 	return nil
 }
 
@@ -201,4 +252,30 @@ func (s *Server) processGetBlocksMessage(from net.Addr, t *GetBlocksMessage) err
 
 func (s *Server) processBlocksMessage(from net.Addr, t *BlocksMessage) error {
 	return nil
+}
+
+func genesisBlock() *core.Block {
+	header := &core.Header{
+		Version:   1,
+		DataHash:  types.Hash{},
+		Height:    0,
+		Timestamp: 000000,
+	}
+
+	b, _ := core.NewBlock(header, nil)
+
+	// create a single transaction
+	coinbase := crypto.PublicKey{}
+	tx := core.NewTransaction(nil)
+	tx.From = coinbase
+	tx.To = coinbase
+	tx.Value = 10_000_000
+	b.Transactions = append(b.Transactions, tx)
+
+	privKey := crypto.GeneratePrivateKey()
+	if err := b.Sign(privKey); err != nil {
+		panic(err)
+	}
+
+	return b
 }

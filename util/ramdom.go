@@ -31,6 +31,10 @@ func NewRandomTransactionWithSignature(t *testing.T, privKey crypto.PrivateKey, 
 	return tx
 }
 
+func NewRandomZeroBlock(t *testing.T) *core.Block {
+	return NewRandomBlock(t, 0, types.Hash{})
+}
+
 func NewRandomBlock(t *testing.T, height uint32, prevBlockHash types.Hash) *core.Block {
 	txSigner := crypto.GeneratePrivateKey()
 	tx := NewRandomTransactionWithSignature(t, txSigner, 100)
@@ -42,9 +46,10 @@ func NewRandomBlock(t *testing.T, height uint32, prevBlockHash types.Hash) *core
 	}
 	b, err := core.NewBlock(header, []*core.Transaction{tx})
 	assert.Nil(t, err)
-	//dataHash, err := core.CalculateDataHash(b.Transactions)
-	//assert.Nil(t, err)
-	//b.Header.DataHash = dataHash
+
+	dataHash, err := core.CalculateDataHash(b.Transactions)
+	assert.Nil(t, err)
+	b.Header.DataHash = dataHash
 
 	return b
 }
