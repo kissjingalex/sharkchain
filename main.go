@@ -2,61 +2,56 @@ package main
 
 import (
 	"bytes"
-	"github.com/sirupsen/logrus"
-	"log"
 	"math/rand"
 	"net"
 	"sharkchain/core"
 	"sharkchain/crypto"
 	"sharkchain/network"
+	"sharkchain/util"
 	"strconv"
 	"time"
 )
 
-var LocalAddr = &net.TCPAddr{
-	IP:   net.ParseIP("127.0.0.1"),
-	Port: 8080,
-	Zone: "",
-}
-
-var RemoteAddr = &net.TCPAddr{
-	IP:   net.ParseIP("127.0.0.1"),
-	Port: 8081,
-	Zone: "",
-}
-
 func main() {
 	validatorPrivKey := crypto.GeneratePrivateKey()
 
-	trLocal := network.NewLocalTransport(LocalAddr)
-	trRemote := network.NewLocalTransport(RemoteAddr)
+	// isValidator
+	localNode := util.MakeServer("LOCAL_NODE", &validatorPrivKey, ":3000", []string{":4000"}, ":9000")
+	go localNode.Start()
 
-	trLocal.Connect(trRemote)
-	trRemote.Connect(trLocal)
+	// test gossip mechanism
+	//remoteNode := makeServer("REMOTE_NODE", nil, ":4000", []string{":3000"}, "")
+	//go remoteNode.Start()
 
-	go func() {
-		for {
-			//trRemote.SendMessage(trLocal.Addr(), []byte("hello world"))
-			if err := sendTransaction(trRemote, trLocal.Addr()); err != nil {
-				logrus.Errorf("failed to send transaction from remote, %+v\n", err)
-			}
+	//remoteNodeB := makeServer("REMOTE_NODE_B", nil, ":5000", nil, "")
+	//go remoteNodeB.Start()
+	//
+	//go func() {
+	//	time.Sleep(11 * time.Second)
+	//
+	//	lateNode := makeServer("LATE_NODE", nil, ":6000", []string{":4000"}, "")
+	//	go lateNode.Start()
+	//}()
 
-			time.Sleep(1 * time.Second)
-		}
-	}()
+	time.Sleep(1 * time.Second)
 
-	opts := network.ServerOpts{
-		PrivateKey: &validatorPrivKey,
-		ID:         "Local",
-		Transports: []network.Transport{trLocal},
-	}
+	// if err := sendTransaction(validatorPrivKey); err != nil {
+	// 	panic(err)
+	// }
 
-	s, err := network.NewServer(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// collectionOwnerPrivKey := crypto.GeneratePrivateKey()
+	// collectionHash := createCollectionTx(collectionOwnerPrivKey)
 
-	s.Start()
+	// txSendTicker := time.NewTicker(1 * time.Second)
+	// go func() {
+	// 	for i := 0; i < 20; i++ {
+	// 		nftMinter(collectionOwnerPrivKey, collectionHash)
+
+	// 		<-txSendTicker.C
+	// 	}
+	// }()
+
+	select {}
 }
 
 func sendTransaction(tr network.Transport, to net.Addr) error {
